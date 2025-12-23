@@ -1,0 +1,32 @@
+{
+  "title": "MeteoGalicia",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure MeteoGalicia",
+        "description": "Enter your MeteoSIX API key and the location to fetch forecasts for.",
+        "data": {
+          "api_key": "API key",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "name": "Name"
+        }
+      },
+      "station": {
+        "title": "Station observations (optional)",
+        "description": "Select a nearby MeteoGalicia station for live observations.",
+        "data": {
+          "station_id": "Station"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect.",
+      "invalid_auth": "Invalid API key.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "Location is already configured."
+    }
+  }
+}
