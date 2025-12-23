@@ -1,5 +1,10 @@
 # MeteoGalicia (MeteoSIX) — Integración personalizada para Home Assistant
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=iago-veiga&repository=ha-meteogalicia&category=integration)
+[![Hassfest](https://github.com/iago-veiga/ha-meteogalicia/actions/workflows/hassfest.yml/badge.svg)](https://github.com/iago-veiga/ha-meteogalicia/actions/workflows/hassfest.yml)
+[![HACS](https://github.com/iago-veiga/ha-meteogalicia/actions/workflows/hacs.yml/badge.svg)](https://github.com/iago-veiga/ha-meteogalicia/actions/workflows/hacs.yml)
+[![Python syntax](https://github.com/iago-veiga/ha-meteogalicia/actions/workflows/python-syntax.yml/badge.svg)](https://github.com/iago-veiga/ha-meteogalicia/actions/workflows/python-syntax.yml)
+
 Integración de Home Assistant para obtener previsión meteorológica desde **MeteoSIX v5** (MeteoGalicia). Opcionalmente, puede añadir sensores con observaciones en vivo desde estaciones (endpoint público `mgrss/observacion`).
 
 - Pronóstico **cada hora** (MeteoSIX JSON)
@@ -32,9 +37,9 @@ Este repositorio está preparado para usarse como **repositorio personalizado** 
 3. Instala “MeteoGalicia (MeteoSIX)”
 4. Reinicia Home Assistant
 
-Enlace “My Home Assistant” (añadir repo a HACS):
+Botón “My Home Assistant” (añadir repo a HACS):
 
-- [Añadir repositorio a HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=iago-veiga&repository=ha-meteogalicia&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=iago-veiga&repository=ha-meteogalicia&category=integration)
 
 ## Instalación (manual)
 
