@@ -134,6 +134,7 @@ class MeteoGaliciaStationSensor(SensorEntity):
             name=f"{self._entry.title or DEFAULT_NAME} - Station {station_id}",
             manufacturer="MeteoGalicia",
             model="mgrss/observacion",
+            configuration_url="https://www.meteogalicia.gal",
             via_device=(DOMAIN, self._entry.entry_id),
         )
 

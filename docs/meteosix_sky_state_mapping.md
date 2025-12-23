@@ -1,6 +1,11 @@
 # MeteoSIX `sky_state` → Home Assistant `condition`
 
-Este documento resume los valores posibles de `sky_state` (según el manual de MeteoSIX v5 y lo observado en la integración), cómo los normalizamos y cómo se correlacionan con el estado `condition` de Home Assistant.
+Este documento resume los valores posibles de `sky_state` (según el manual de MeteoSIX v5) y cómo se mapean al campo `condition` de Home Assistant.
+
+Referencias:
+
+- Manual MeteoSIX v5: [API_MeteoSIX_v5_gl.pdf](https://meteo-estaticos.xunta.gal/datosred/infoweb/meteo/proxectos/meteosix/API_MeteoSIX_v5_gl.pdf)
+- Weather entity (HA): [developers.home-assistant.io/docs/core/entity/weather](https://developers.home-assistant.io/docs/core/entity/weather/)
 
 ## 1) Qué devuelve MeteoSIX
 
@@ -32,7 +37,7 @@ Estos son los valores enumerados en el manual (v5):
 - `OVERCAST_AND_SHOWERS`
 - `RAIN_HAIL`
 
-> Nota: El manual también menciona que `sky_state` tiene un símbolo asociado (`iconURL`), pero Home Assistant no usa ese icono directamente: la UI depende de `condition`.
+> Nota: el manual menciona que `sky_state` tiene un símbolo asociado (`iconURL`), pero Home Assistant no usa ese icono directamente: los iconos dependen de `condition`.
 
 ### Día / noche
 
@@ -61,7 +66,7 @@ Ejemplos:
 La integración traduce MeteoSIX → `condition` de Home Assistant así:
 
 | MeteoSIX `sky_state` | HA `condition` | Comentario |
-|---|---|---|
+| --- | --- | --- |
 | `SUNNY` | `sunny` (o `clear-night` si es noche) | Noche según sunrise/sunset |
 | `HIGH_CLOUDS` | `partlycloudy` | Nubes altas |
 | `MID_CLOUDS` | `partlycloudy` | Nubes medias |

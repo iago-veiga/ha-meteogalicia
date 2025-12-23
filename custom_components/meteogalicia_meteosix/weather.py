@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, time
 from typing import Any
 
 from homeassistant.components.weather import (
@@ -17,6 +17,7 @@ from homeassistant.helpers import sun as sun_helper
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
+from homeassistant.const import UnitOfLength, UnitOfPressure, UnitOfSpeed
 
 from .const import DEFAULT_NAME, DOMAIN
 
@@ -220,10 +221,49 @@ def _as_float(value: Any) -> float | None:
         return None
 
 
+def _get_var_values(
+    by_var: dict[str, list[dict[str, Any]]],
+    *names: str,
+    prefix: str | None = None,
+) -> list[dict[str, Any]]:
+    for name in names:
+        values = by_var.get(name)
+        if values:
+            return values
+    if prefix:
+        for key, values in by_var.items():
+            if key.startswith(prefix) and values:
+                return values
+    return []
+
+
+def _get_first_float(d: dict[str, Any], *keys: str) -> float | None:
+    for k in keys:
+        if k in d:
+            v = _as_float(d.get(k))
+            if v is not None:
+                return v
+    return None
+
+
+def _percent_int(value: Any) -> int | None:
+    v = _as_float(value)
+    if v is None:
+        return None
+    v = max(0.0, min(100.0, v))
+    return int(round(v))
+
+
 class MeteoGaliciaWeather(WeatherEntity):
     _attr_has_entity_name = True
     _attr_name = "Forecast"
-    _attr_supported_features = WeatherEntityFeature.FORECAST_HOURLY
+    _attr_native_pressure_unit = UnitOfPressure.HPA
+    _attr_native_wind_speed_unit = UnitOfSpeed.METERS_PER_SECOND
+    _attr_native_precipitation_unit = UnitOfLength.MILLIMETERS
+    _attr_supported_features = (
+        WeatherEntityFeature.FORECAST_HOURLY
+        | WeatherEntityFeature.FORECAST_DAILY
+    )
 
     def __init__(self, entry: ConfigEntry) -> None:
         self._entry = entry
@@ -239,6 +279,7 @@ class MeteoGaliciaWeather(WeatherEntity):
             name=self._entry.title or DEFAULT_NAME,
             manufacturer="MeteoGalicia",
             model="MeteoSIX v5",
+            configuration_url="https://www.meteogalicia.gal",
         )
 
     @property
@@ -337,6 +378,35 @@ class MeteoGaliciaWeather(WeatherEntity):
         except Exception:  # noqa: BLE001
             pass
 
+        # Quick sanity-checks for extra variables.
+        try:
+            attrs["meteosix_pressure_hpa"] = self.native_pressure
+            attrs["meteosix_cloud_coverage_pct"] = self.cloud_coverage
+        except Exception:  # noqa: BLE001
+            pass
+
+        # Minimal payload introspection to debug missing values.
+        try:
+            available = sorted(by_var.keys())
+            attrs["meteosix_available_variables"] = available[:50]
+
+            winds = _get_var_values(by_var, "wind")
+            now = dt_util.utcnow()
+            w_near = _pick_nearest(winds, now) if winds else None
+            if isinstance(w_near, dict):
+                attrs["meteosix_wind_keys"] = sorted(w_near.keys())
+
+            pressures = _get_var_values(
+                by_var,
+                "air_pressure_at_sea_level",
+                prefix="air_pressure",
+            )
+            p_near = _pick_nearest(pressures, now) if pressures else None
+            if isinstance(p_near, dict):
+                attrs["meteosix_pressure_keys"] = sorted(p_near.keys())
+        except Exception:  # noqa: BLE001
+            pass
+
         return attrs
 
     @property
@@ -362,26 +432,97 @@ class MeteoGaliciaWeather(WeatherEntity):
         return _as_float(nearest.get("value"))
 
     @property
-    def wind_speed(self) -> float | None:
+    def native_pressure(self) -> float | None:
         data = self._coordinator.data or {}
         by_var = _iter_values_by_variable(data)
-        winds = by_var.get("wind") or []
+        pressures = _get_var_values(
+            by_var,
+            "air_pressure_at_sea_level",
+            prefix="air_pressure",
+        )
+        now = dt_util.utcnow()
+        nearest = _pick_nearest(pressures, now)
+        if not nearest:
+            return None
+        return _get_first_float(nearest, "value", "moduleValue")
+
+    @property
+    def pressure(self) -> float | None:
+        # Backwards-compatible alias for older HA frontends.
+        return self.native_pressure
+
+    @property
+    def cloud_coverage(self) -> int | None:
+        """Current cloud coverage in %.
+
+        Per HA docs this is a non-native int property.
+        MeteoSIX returns cloud_area_fraction in percent.
+        """
+
+        data = self._coordinator.data or {}
+        by_var = _iter_values_by_variable(data)
+        clouds = _get_var_values(by_var, "cloud_area_fraction", prefix="cloud")
+        now = dt_util.utcnow()
+        nearest = _pick_nearest(clouds, now)
+        if not nearest:
+            return None
+        return _percent_int(
+            _get_first_float(nearest, "value", "moduleValue"),
+        )
+
+    @property
+    def native_wind_speed(self) -> float | None:
+        data = self._coordinator.data or {}
+        by_var = _iter_values_by_variable(data)
+        winds = _get_var_values(by_var, "wind")
         now = dt_util.utcnow()
         nearest = _pick_nearest(winds, now)
         if not nearest:
             return None
-        return _as_float(nearest.get("moduleValue"))
+        return _get_first_float(
+            nearest,
+            "moduleValue",
+            "value",
+            "speedValue",
+            "speed",
+        )
+
+    @property
+    def wind_speed(self) -> float | None:
+        # Backwards-compatible alias.
+        return self.native_wind_speed
 
     @property
     def wind_bearing(self) -> float | None:
         data = self._coordinator.data or {}
         by_var = _iter_values_by_variable(data)
-        winds = by_var.get("wind") or []
+        winds = _get_var_values(by_var, "wind")
         now = dt_util.utcnow()
         nearest = _pick_nearest(winds, now)
         if not nearest:
             return None
-        return _as_float(nearest.get("directionValue"))
+        return _get_first_float(
+            nearest,
+            "directionValue",
+            "direction",
+            "bearing",
+        )
+
+    @property
+    def native_precipitation(self) -> float | None:
+        data = self._coordinator.data or {}
+        by_var = _iter_values_by_variable(data)
+        prec = _get_var_values(by_var, "precipitation_amount", prefix="precip")
+        now = dt_util.utcnow()
+        nearest = _pick_nearest(prec, now)
+        if not nearest:
+            return None
+        return _get_first_float(nearest, "value", "moduleValue")
+
+    @property
+    def precipitation(self) -> float | None:
+        # Backwards-compatible alias.
+        return self.native_precipitation
 
     async def async_forecast_hourly(self) -> list[Forecast] | None:
         data = self._coordinator.data or {}
@@ -450,6 +591,153 @@ class MeteoGaliciaWeather(WeatherEntity):
                         if w
                         else None
                     ),
+                }
+            )
+
+        return forecasts
+
+    async def async_forecast_daily(self) -> list[Forecast] | None:
+        """Build a daily forecast by summarizing hourly values.
+
+        The MeteoSIX JSON response is hourly; the manual notes daily summaries
+        exist in the HTML format, but we keep JSON and synthesize daily values.
+        """
+
+        data = self._coordinator.data or {}
+        by_var = _iter_values_by_variable(data)
+
+        temps = by_var.get("temperature") or []
+        sky = by_var.get("sky_state") or []
+        winds = by_var.get("wind") or []
+        prec = by_var.get("precipitation_amount") or []
+
+        def index(
+            values: list[dict[str, Any]],
+        ) -> dict[datetime, dict[str, Any]]:
+            out: dict[datetime, dict[str, Any]] = {}
+            for v in values:
+                time_raw = v.get("timeInstant")
+                if not isinstance(time_raw, str):
+                    continue
+                dt = dt_util.parse_datetime(time_raw)
+                if dt is None:
+                    continue
+                out[dt_util.as_utc(dt)] = v
+            return out
+
+        t_idx = index(temps)
+        s_idx = index(sky)
+        w_idx = index(winds)
+        p_idx = index(prec)
+
+        hours = sorted(t_idx.keys())
+        if not hours:
+            return None
+
+        # Group by local date.
+        by_day: dict[datetime.date, list[datetime]] = {}
+        for dt in hours:
+            d = dt_util.as_local(dt).date()
+            by_day.setdefault(d, []).append(dt)
+
+        severity: dict[str, int] = {
+            "exceptional": 100,
+            "lightning-rainy": 90,
+            "lightning": 85,
+            "hail": 80,
+            "snowy-rainy": 70,
+            "snowy": 60,
+            "pouring": 55,
+            "rainy": 50,
+            "fog": 40,
+            "cloudy": 30,
+            "partlycloudy": 20,
+            "sunny": 10,
+            "clear-night": 10,
+        }
+
+        def pick_daily_condition(day_hours: list[datetime]) -> str | None:
+            best: tuple[int, str] | None = None
+            for dt in day_hours:
+                s = s_idx.get(dt)
+                if not s or not isinstance(s.get("value"), str):
+                    continue
+                cond = _map_sky_state(str(s.get("value")))
+                if cond is None:
+                    continue
+                # Daily forecast should be day-oriented; treat clear-night as
+                # sunny.
+                if cond == "clear-night":
+                    cond = "sunny"
+                score = severity.get(cond, 0)
+                if best is None or score > best[0]:
+                    best = (score, cond)
+            return best[1] if best else None
+
+        forecasts: list[Forecast] = []
+        for d in sorted(by_day.keys())[:7]:
+            day_hours = by_day[d]
+            t_vals = [
+                _as_float(t_idx[h].get("value"))
+                for h in day_hours
+                if h in t_idx
+            ]
+            t_vals = [v for v in t_vals if v is not None]
+            if not t_vals:
+                continue
+
+            p_sum = 0.0
+            p_any = False
+            for h in day_hours:
+                v = p_idx.get(h)
+                if not v:
+                    continue
+                pv = _as_float(v.get("value"))
+                if pv is None:
+                    continue
+                p_sum += pv
+                p_any = True
+
+            w_max: float | None = None
+            w_dir: float | None = None
+            # Prefer wind direction around local noon if available.
+            noon_local = datetime.combine(
+                d,
+                time(12, 0),
+                tzinfo=dt_util.DEFAULT_TIME_ZONE,
+            )
+            noon_utc = dt_util.as_utc(noon_local)
+            nearest_wind = _pick_nearest(
+                [w_idx[h] for h in day_hours if h in w_idx],
+                noon_utc,
+            )
+            if nearest_wind is not None:
+                w_dir = _as_float(nearest_wind.get("directionValue"))
+
+            for h in day_hours:
+                w = w_idx.get(h)
+                if not w:
+                    continue
+                wm = _as_float(w.get("moduleValue"))
+                if wm is None:
+                    continue
+                w_max = wm if w_max is None else max(w_max, wm)
+
+            # Use local noon as the datetime anchor.
+            local_noon = datetime.combine(
+                d,
+                time(12, 0),
+                tzinfo=dt_util.DEFAULT_TIME_ZONE,
+            )
+            forecasts.append(
+                {
+                    "datetime": local_noon.isoformat(),
+                    "temperature": max(t_vals),
+                    "templow": min(t_vals),
+                    "condition": pick_daily_condition(day_hours),
+                    "precipitation": p_sum if p_any else None,
+                    "wind_speed": w_max,
+                    "wind_bearing": w_dir,
                 }
             )
 

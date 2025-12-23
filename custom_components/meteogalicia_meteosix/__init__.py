@@ -40,6 +40,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "sky_state",
             "temperature",
             "relative_humidity",
+            "cloud_area_fraction",
+            "air_pressure_at_sea_level",
             "wind",
             "precipitation_amount",
         ],
