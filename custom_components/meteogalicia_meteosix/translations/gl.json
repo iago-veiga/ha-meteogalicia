@@ -1,0 +1,51 @@
+{
+  "title": "MeteoGalicia",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar MeteoGalicia",
+        "description": "Introduce a túa API key de MeteoSIX e a localización para obter a predición.",
+        "data": {
+          "api_key": "API key",
+          "latitude": "Latitude",
+          "longitude": "Lonxitude",
+          "name": "Nome"
+        }
+      },
+      "alerts": {
+        "title": "Avisos do concello",
+        "description": "Activa os avisos por adversos para o teu concello.",
+        "data": {
+          "enable_alerts": "Activar avisos",
+          "concello_id": "Concello"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Non se puido conectar.",
+      "invalid_auth": "API key inválida.",
+      "unknown": "Erro inesperado."
+    },
+    "abort": {
+      "already_configured": "A localización xa está configurada."
+    }
+  },
+  "entity": {
+    "weather": {
+      "forecast": {
+        "name": "Predición"
+      }
+    },
+    "sensor": {
+      "temperature": {"name": "Temperatura"},
+      "humidity": {"name": "Humidade"},
+      "pressure": {"name": "Presión"},
+      "wind_speed": {"name": "Velocidade do vento"},
+      "wind_bearing": {"name": "Dirección do vento"},
+      "rain_10min": {"name": "Chuvia (10 min)"},
+      "concello_alerts": {"name": "Avisos do concello"},
+      "concello_alerts_today": {"name": "Avisos do concello (hoxe)"},
+      "concello_alerts_tomorrow": {"name": "Avisos do concello (mañá)"}
+    }
+  }
+}

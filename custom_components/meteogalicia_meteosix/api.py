@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any
 
 import asyncio
+import json
 import async_timeout
 
 from aiohttp import ClientError, ClientSession
@@ -223,10 +224,13 @@ class MgrssObservationsClient:
         return stations
 
     async def latest_10min_observations(
-        self, station_id: str
+        self, station_id: str | None = None
     ) -> dict[str, Any]:
         url = f"{MGRSS_BASE_URL}/observacion/ultimos10minEstacionsMeteo.action"
-        params = {"idEst": station_id}
+        params: dict[str, str] | None = None
+        if station_id:
+            # Service MAY ignore this filter; we still send it when asked.
+            params = {"idEstacion": station_id}
         try:
             async with async_timeout.timeout(15):
                 resp = await self._session.get(url, params=params)
@@ -239,4 +243,120 @@ class MgrssObservationsClient:
         if not isinstance(data, dict):
             raise MeteoGaliciaApiError(None, "Unexpected response")
 
+        return data
+
+    async def list_concellos(self) -> list[tuple[str, str]]:
+        """Return a list of (idConcello, nomeConcello)."""
+
+        url = f"{MGRSS_BASE_URL}/observacion/observacionConcellos.action"
+        try:
+            async with async_timeout.timeout(15):
+                resp = await self._session.get(url)
+                text = await resp.text()
+        except (TimeoutError, asyncio.TimeoutError) as err:
+            raise MeteoGaliciaConnectionError("Timeout") from err
+        except ClientError as err:
+            raise MeteoGaliciaConnectionError("Client error") from err
+
+        if resp.status != 200:
+            raise MeteoGaliciaApiError(resp.status, "Unexpected response")
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as err:
+            raise MeteoGaliciaApiError(resp.status, "Invalid JSON") from err
+
+        raw = (
+            # Documented payload uses 'listaObservacionConcellos' (gl).
+            data.get("listaObservacionConcellos")
+            or data.get("listObservacionConcellos")
+            if isinstance(data, dict)
+            else None
+        )
+        if not isinstance(raw, list):
+            return []
+
+        out: list[tuple[str, str]] = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            concello_id = item.get("idConcello")
+            concello_name = item.get("nomeConcello")
+            if concello_id is None or concello_name is None:
+                continue
+            out.append((str(concello_id), str(concello_name)))
+
+        return out
+
+
+class MgrssAdversosClient:
+    """Client for mgrss concello adverse warnings (avisos)."""
+
+    def __init__(self, session: ClientSession) -> None:
+        self._session = session
+
+    async def avisos_concellos(
+        self,
+        *,
+        dia: int = 0,
+        concello_id: str | None = None,
+    ) -> dict[str, Any]:
+        url = f"{MGRSS_BASE_URL}/predicion/adversos/jsonAvisosConcellos.action"
+        params: dict[str, str] = {"dia": str(dia)}
+        if concello_id:
+            params["idConcello"] = str(concello_id)
+
+        try:
+            async with async_timeout.timeout(15):
+                resp = await self._session.get(url, params=params)
+                text = await resp.text()
+        except (TimeoutError, asyncio.TimeoutError) as err:
+            raise MeteoGaliciaConnectionError("Timeout") from err
+        except ClientError as err:
+            raise MeteoGaliciaConnectionError("Client error") from err
+
+        if resp.status != 200:
+            raise MeteoGaliciaApiError(resp.status, "Unexpected response")
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as err:
+            raise MeteoGaliciaApiError(resp.status, "Invalid JSON") from err
+
+        if not isinstance(data, dict):
+            raise MeteoGaliciaApiError(None, "Unexpected response")
+        return data
+
+    async def concellos_nivel_max(
+        self,
+        *,
+        dia: int = 0,
+        concello_id: str | None = None,
+    ) -> dict[str, Any]:
+        url = (
+            f"{MGRSS_BASE_URL}/predicion/adversos/jsonConcellosNivelMax.action"
+        )
+        params: dict[str, str] = {"dia": str(dia)}
+        if concello_id:
+            params["idConcello"] = str(concello_id)
+
+        try:
+            async with async_timeout.timeout(15):
+                resp = await self._session.get(url, params=params)
+                text = await resp.text()
+        except (TimeoutError, asyncio.TimeoutError) as err:
+            raise MeteoGaliciaConnectionError("Timeout") from err
+        except ClientError as err:
+            raise MeteoGaliciaConnectionError("Client error") from err
+
+        if resp.status != 200:
+            raise MeteoGaliciaApiError(resp.status, "Unexpected response")
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as err:
+            raise MeteoGaliciaApiError(resp.status, "Invalid JSON") from err
+
+        if not isinstance(data, dict):
+            raise MeteoGaliciaApiError(None, "Unexpected response")
         return data

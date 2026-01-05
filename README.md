@@ -10,6 +10,7 @@ Integración de Home Assistant para obtener previsión meteorológica desde **Me
 - Pronóstico **cada hora** (MeteoSIX JSON)
 - Pronóstico **diario** (sintetizado a partir del horario)
 - Condiciones (`condition`) con mapeo completo de `sky_state` + soporte día/noche usando `getSolarInfo`
+- Avisos por adversos del **concello** (hoy y mañana)
 
 ## Requisitos
 
@@ -54,6 +55,34 @@ La configuración se realiza desde la UI (Config Flow):
 - `api_key`: API key de MeteoSIX
 - `latitude` / `longitude`: coordenadas para el pronóstico (por defecto usa la ubicación de Home Assistant)
 - Estación (opcional): añade sensores de observación (viento/temperatura/lluvia, etc.)
+- Avisos del concello (opcional): crea sensores con el nivel de aviso por adversos.
+
+### Avisos del concello (hoy y mañana)
+
+Si activas los avisos durante la configuración, se crean dos sensores:
+
+- **Avisos del concello (hoy)**
+- **Avisos del concello (mañana)**
+
+El estado del sensor es numérico `0..3`:
+
+- `0`: sin avisos (normal / verde)
+- `1`: amarillo
+- `2`: naranja
+- `3`: rojo
+
+Atributos útiles (para automatizaciones):
+
+- `level_key`: `normal|yellow|orange|red`
+- `level_color`: `green|yellow|orange|red`
+- `avisos`: lista de avisos detallados para ese día
+- `concello_name`, `concello_id`, `day_offset`
+
+Ejemplo de automatización simple (mañana naranja o rojo):
+
+- Disparador: entidad = “Avisos del concello (mañana)”
+- Condición: estado numérico >= 2
+- Acción: notificación
 
 ## Entidades
 
@@ -66,6 +95,7 @@ Nota: el panel estándar de “Clima” no siempre muestra todas las propiedades
 
 - Tras actualizar la integración, **reinicia Home Assistant**. Con solo “recargar” a veces quedan módulos cacheados.
 - Si ves `condition` desconocida, revisa los atributos `meteosix_sky_state*` y los logs para detectar códigos no mapeados.
+- Observaciones de estación: MeteoGalicia a veces devuelve datos parciales en el endpoint de “últimos 10 min”. Si una estación deja de tener datos recientes, verás `No recent data for station ...` en logs.
 
 ## Versionado y releases
 
@@ -87,3 +117,7 @@ El componente vive en `custom_components/meteogalicia_meteosix`.
 Documentación adicional:
 
 - [docs/meteosix_sky_state_mapping.md](docs/meteosix_sky_state_mapping.md)
+
+Fuentes oficiales (PDFs):
+
+- MeteoSIX v5: https://meteo-estaticos.xunta.gal/datosred/infoweb/meteo/proxectos/meteosix/API_MeteoSIX_v5_gl.pdf
