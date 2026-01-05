@@ -40,13 +40,18 @@ def _normalize_place_name(value: str) -> str:
 def _parse_concellos_from_nivel_max(payload: Any) -> list[tuple[str, str]]:
     if not isinstance(payload, dict):
         return []
-    dia_list = payload.get("listaDiaConcellos")
-    if not isinstance(dia_list, list) or not dia_list:
-        return []
-    first = dia_list[0]
-    if not isinstance(first, dict):
-        return []
-    items = first.get("listaNiveisMaximos")
+
+    # Documented response uses either:
+    # - {"listaNiveisMaximos": [...]} (common)
+    # - or an older nested day structure
+    items = payload.get("listaNiveisMaximos")
+    if not isinstance(items, list):
+        dia_list = payload.get("listaDiaConcellos")
+        if isinstance(dia_list, list) and dia_list:
+            first = dia_list[0]
+            if isinstance(first, dict):
+                items = first.get("listaNiveisMaximos")
+
     if not isinstance(items, list):
         return []
 
@@ -54,7 +59,9 @@ def _parse_concellos_from_nivel_max(payload: Any) -> list[tuple[str, str]]:
     for item in items:
         if not isinstance(item, dict):
             continue
-        cid = item.get("idConcello")
+        cid = item.get("idconcello")
+        if cid is None:
+            cid = item.get("idConcello")
         cname = item.get("nomeConcello")
         if cid is None or cname is None:
             continue
