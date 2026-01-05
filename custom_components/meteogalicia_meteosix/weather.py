@@ -16,6 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import sun as sun_helper
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 from homeassistant.const import UnitOfLength, UnitOfPressure, UnitOfSpeed
 
@@ -254,9 +255,9 @@ def _percent_int(value: Any) -> int | None:
     return int(round(v))
 
 
-class MeteoGaliciaWeather(WeatherEntity):
+class MeteoGaliciaWeather(CoordinatorEntity, WeatherEntity):
     _attr_has_entity_name = True
-    _attr_name = "Forecast"
+    _attr_translation_key = "forecast"
     _attr_native_pressure_unit = UnitOfPressure.HPA
     _attr_native_wind_speed_unit = UnitOfSpeed.METERS_PER_SECOND
     _attr_native_precipitation_unit = UnitOfLength.MILLIMETERS
@@ -270,7 +271,21 @@ class MeteoGaliciaWeather(WeatherEntity):
         self._coordinator = entry.runtime_data["forecast_coordinator"]
         self._solar_coordinator = entry.runtime_data.get("solar_coordinator")
 
+        super().__init__(self._coordinator)
+
         self._attr_unique_id = f"{entry.entry_id}_forecast"
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+
+        # Solar updates are infrequent but should still refresh the condition
+        # when sunrise/sunset changes.
+        if self._solar_coordinator is not None:
+            self.async_on_remove(
+                self._solar_coordinator.async_add_listener(
+                    self.async_write_ha_state
+                )
+            )
 
     @property
     def device_info(self) -> DeviceInfo:

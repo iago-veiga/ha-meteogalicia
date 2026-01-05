@@ -10,3 +10,10 @@ El formato de versiones sigue CalVer: `YYYY.MM.PATCH`.
 - Soporte opcional de observaciones de estación (endpoints públicos `mgrss/observacion`).
 - Propiedades meteorológicas adicionales cuando están disponibles (p. ej. presión y nubosidad).
 - Dispositivos agrupados con `DeviceInfo` y enlace a MeteoGalicia.
+
+## 2026.01.0 - 2026-01-05
+
+- i18n: traducciones en ES/GL y uso de `translation_key` en entidades.
+- Observaciones de estación más fiables (entidades basadas en `DataUpdateCoordinator`).
+- Selección automática de estación cercana por coordenadas.
+- Avisos por concello: sensor para hoy y mañana (derivado de `dia=-1`) con mapping 0–3.

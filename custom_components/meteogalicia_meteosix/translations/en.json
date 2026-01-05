@@ -18,6 +18,14 @@
         "data": {
           "station_id": "Station"
         }
+      },
+      "alerts": {
+        "title": "Concello warnings",
+        "description": "Enable adverse weather warnings for your concello.",
+        "data": {
+          "enable_alerts": "Enable warnings",
+          "concello_id": "Concello"
+        }
       }
     },
     "error": {
@@ -27,6 +35,25 @@
     },
     "abort": {
       "already_configured": "Location is already configured."
+    }
+  }
+  ,
+  "entity": {
+    "weather": {
+      "forecast": {
+        "name": "Forecast"
+      }
+    },
+    "sensor": {
+      "temperature": {"name": "Temperature"},
+      "humidity": {"name": "Humidity"},
+      "pressure": {"name": "Pressure"},
+      "wind_speed": {"name": "Wind speed"},
+      "wind_bearing": {"name": "Wind bearing"},
+      "rain_10min": {"name": "Rain (10 min)"},
+      "concello_alerts": {"name": "Concello warnings"},
+      "concello_alerts_today": {"name": "Concello warnings (today)"},
+      "concello_alerts_tomorrow": {"name": "Concello warnings (tomorrow)"}
     }
   }
 }

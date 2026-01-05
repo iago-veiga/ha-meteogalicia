@@ -6,5 +6,6 @@ __pycache__/
 .ruff_cache/
 .DS_Store
 
-# Provider docs (keep local, don't commit)
-*.pdf
+# Local copies of upstream PDF docs (keep repo lightweight; link instead).
+docs/PDF/
+
