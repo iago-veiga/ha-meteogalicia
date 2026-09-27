@@ -1,5 +1,11 @@
 # MeteoGalicia (MeteoSIX) — Integración personalizada para Home Assistant
 
+> [!WARNING]
+> **Esta integración ya no se mantiene y el repositorio está archivado (solo lectura).**
+> La sustituye **[MeteoGal](https://github.com/iago-veiga/ha-meteogal)**, una integración nueva que funciona sin clave con los servicios públicos de MeteoGalicia y añade los datos de MeteoSIX si tienes clave. MeteoGal todavía no está publicada: el enlace funcionará cuando lo esté.
+>
+> Si usas esta integración, puedes seguir haciéndolo, pero no recibirá correcciones.
+
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=iago-veiga&repository=ha-meteogalicia&category=integration)
 [![Hassfest](https://github.com/iago-veiga/ha-meteogalicia/actions/workflows/hassfest.yml/badge.svg)](https://github.com/iago-veiga/ha-meteogalicia/actions/workflows/hassfest.yml)
 [![HACS](https://github.com/iago-veiga/ha-meteogalicia/actions/workflows/hacs.yml/badge.svg)](https://github.com/iago-veiga/ha-meteogalicia/actions/workflows/hacs.yml)
